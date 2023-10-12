@@ -3,14 +3,9 @@
 #include <float.h>
 #include <string>
 #include <thread>
-#include <future>
-#include <vector>
-
-#include <iostream>
 
 using std::string;
 using std::thread;
-using std::vector;
 
 char tohex(uint8_t a)
 {
