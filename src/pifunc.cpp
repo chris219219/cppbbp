@@ -1,6 +1,16 @@
 #include "../inc/pifunc.hpp"
 
 #include <float.h>
+#include <string>
+#include <thread>
+#include <future>
+#include <vector>
+
+#include <iostream>
+
+using std::string;
+using std::thread;
+using std::vector;
 
 char tohex(uint8_t a)
 {
@@ -67,3 +77,31 @@ char pihex(long n)
     return tohex(pidec(n));
 }
 
+void pithread(char* char_arr, long start, long length, int threads, int id)
+{
+    for (long i = id; i < length; i += threads)
+    {
+        char_arr[i] = pihex(start + i);
+    }
+}
+
+string pigroup(long start, long length, int threads)
+{
+    char* char_arr = new char[length];
+
+    vector<thread> thread_vec;
+    thread_vec.reserve(threads);
+
+    for (int i = 0; i < threads; ++i)
+    {
+        thread_vec.push_back(
+            std::thread(pithread, char_arr, start, length, threads, i));
+    }
+
+    for (int i = 0; i < threads; ++i)
+        thread_vec[i].join();
+
+    string ret(char_arr);
+    delete char_arr;
+    return ret;
+}

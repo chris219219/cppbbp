@@ -43,6 +43,10 @@ bbprun prompt_for_new_run();
 
 int main()
 {
+    string hexpi = pigroup(0, 50000, 12);
+    cout << hexpi;
+    return 0;
+
     cout <<
         "Welcome to cppbpp!\n"
         "This program uses the Bailey-Borwein-Plouffe algorithm to calculate\n"
