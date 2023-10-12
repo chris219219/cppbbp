@@ -88,20 +88,18 @@ void pithread(char* char_arr, long start, long length, int threads, int id)
 string pigroup(long start, long length, int threads)
 {
     char* char_arr = new char[length];
-
-    vector<thread> thread_vec;
-    thread_vec.reserve(threads);
+    thread* thread_arr = new thread[threads];
 
     for (int i = 0; i < threads; ++i)
     {
-        thread_vec.push_back(
-            std::thread(pithread, char_arr, start, length, threads, i));
+        thread_arr[i] = std::thread(pithread, char_arr, start, length, threads, i);
     }
 
     for (int i = 0; i < threads; ++i)
-        thread_vec[i].join();
+        thread_arr[i].join();
 
+    delete[] thread_arr;
     string ret(char_arr);
-    delete char_arr;
+    delete[] char_arr;
     return ret;
 }
