@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <thread>
 
 #include "../inc/util.hpp"
 #include "../inc/pifunc.hpp"
@@ -22,6 +23,8 @@ const string RUNDATA_EXT(".rundata");
 const string BATCHDATA_EXT(".batchdata");
 const string BATCHDATA_DIR_SUFFIX("_batchdata");
 
+const auto PROCESSOR_COUNT = std::thread::hardware_concurrency();
+
 struct bbprun
 {
     string name;
@@ -40,13 +43,10 @@ const bbprun bbprun_default = { "", 0, 0 };
 
 bbprun prompt_for_saved_run();
 bbprun prompt_for_new_run();
+void start(bool& paused, bbprun& run);
 
 int main()
 {
-    string hexpi = pigroup(0, 50000, 12);
-    cout << hexpi;
-    return 0;
-
     cout <<
         "Welcome to cppbpp!\n"
         "This program uses the Bailey-Borwein-Plouffe algorithm to calculate\n"
@@ -75,6 +75,8 @@ int main()
     bool paused = true;
     bool stopped = false;
 
+    std::thread* t;
+
     while (!stopped)
     {
         cout
@@ -93,16 +95,29 @@ int main()
         
         if (usernum == 1)
         {
-
             paused = !paused;
-            
+            if (!paused)
+                t = new std::thread(start, std::ref(paused), std::ref(currentrun));
+            else
+            {
+                t->join();
+                t = NULL;
+            }
         }
         else
         {
+            paused = true;
             stopped = true;
+            if (t)
+            {
+                t->join();
+                t = NULL;
+            }
         }
     }
 
+    if (t)
+        free(t);
     return 0;
 }
 
@@ -183,6 +198,10 @@ bbprun prompt_for_saved_run()
 bbprun prompt_for_new_run()
 {
     cout << "Starting a new run." << endl;
+    cout << "Give the run a name: ";
+    string name;
+    while (!(cin >> name) || name == "")
+        cout << "Invalid input, try again: ";
     cout <<
         "Batch size determines how many digits the program will\n"
         "calculate at once using multithreading. It is recommended\n"
@@ -192,5 +211,22 @@ bbprun prompt_for_new_run()
     while (!(cin >> batchsize) || batchsize < 1)
         cout << "Invalid input, try again: ";
 
-    return { "", batchsize, 0 };
+    return { name, batchsize, 0 };
+}
+
+void start(bool& paused, bbprun& run)
+{
+    string dir = run.name + BATCHDATA_DIR_SUFFIX;
+    if (!fs::is_directory(dir))
+        fs::create_directory(dir);
+        
+    while (!paused)
+    {
+        ofstream batch(dir + "/" + run.name + BATCHDATA_EXT + std::to_string(run.lastdigit / run.batchsize));
+        batch << pigroup(run.lastdigit, run.batchsize, PROCESSOR_COUNT);
+        run.lastdigit += run.batchsize;
+        ofstream rundata(run.name + RUNDATA_EXT, std::ios::trunc);
+        rundata << std::to_string(run.batchsize) + " " + std::to_string(run.lastdigit);
+        rundata.close();
+    }
 }
